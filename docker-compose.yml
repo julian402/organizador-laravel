@@ -1,0 +1,17 @@
+# Contenedor de la app para desarrollo local.
+# La BD no va aquí: usa el PostgreSQL de Windows (en AWS, la EC2 de BD).
+#
+#   docker compose up --build        levanta y muestra los logs en vivo (Ctrl+C para detener)
+#   docker compose up -d --build     levanta en segundo plano
+#   docker compose logs -f app       ver logs en vivo
+#   docker compose down              detener y borrar el contenedor
+services:
+  app:
+    build: ./src
+    image: organizador-app
+    container_name: organizador
+    ports:
+      - "8080:80"
+    env_file:
+      - ./src/.env.docker
+    restart: unless-stopped
