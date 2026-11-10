@@ -36,8 +36,8 @@ RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini" \
     && sed -ri 's/^expose_php = .*/expose_php = Off/' "$PHP_INI_DIR/php.ini"
 
 WORKDIR /var/www/html
-COPY --from=vendor /app /var/www/html
-RUN chown -R www-data:www-data storage bootstrap/cache
+# --chown: en macOS/OneDrive los archivos llegan con permisos 700 y Apache (www-data) no podría leerlos
+COPY --from=vendor --chown=www-data:www-data /app /var/www/html
 
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
