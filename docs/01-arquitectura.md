@@ -15,12 +15,13 @@
 ```mermaid
 flowchart LR
     U[Navegador] -->|HTTP| R[routes/web.php]
-    R --> MW{Middleware<br/>guest / auth}
-    MW --> C[Controller<br/>RegisterController<br/>LoginController<br/>DashboardController]
-    C --> FR[Form Request<br/>RegisterRequest<br/>LoginRequest]
+    R --> MW{Middleware<br/>guest / auth / sin-cache / throttle}
+    MW --> C[Controller<br/>RegisterController<br/>LoginController<br/>ForgotPasswordController<br/>ResetPasswordController<br/>DashboardController]
+    C --> FR[Form Request<br/>RegisterRequest<br/>LoginRequest<br/>ForgotPasswordRequest<br/>ResetPasswordRequest]
     C --> M[Model<br/>User]
     M --> DB[(PostgreSQL)]
-    C --> V[View Blade<br/>auth/register<br/>auth/login<br/>dashboard]
+    M --> N[Notification<br/>RestablecerContrasena]
+    C --> V[View Blade<br/>auth/register, auth/login<br/>auth/forgot-password<br/>auth/reset-password<br/>dashboard]
     V --> U
 ```
 
@@ -28,11 +29,13 @@ flowchart LR
 |---|---|
 | Rutas | `src/routes/web.php` |
 | Modelo | `src/app/Models/User.php` |
-| Controladores | `src/app/Http/Controllers/Auth/RegisterController.php`, `LoginController.php`, `DashboardController.php` |
-| Validaciones | `src/app/Http/Requests/Auth/RegisterRequest.php`, `LoginRequest.php` |
-| Vistas | `src/resources/views/layouts/app.blade.php`, `auth/register.blade.php`, `auth/login.blade.php`, `dashboard.blade.php` |
+| Controladores | `src/app/Http/Controllers/Auth/RegisterController.php`, `LoginController.php`, `ForgotPasswordController.php`, `ResetPasswordController.php`, `DashboardController.php` |
+| Validaciones | `src/app/Http/Requests/Auth/RegisterRequest.php`, `LoginRequest.php` (incluye el límite de intentos de HU-05), `ForgotPasswordRequest.php`, `ResetPasswordRequest.php`, `Concerns/ValidaContrasena.php` (reglas de contraseña compartidas) |
+| Middleware | `src/app/Http/Middleware/SecurityHeaders.php`, `SinCache.php` (HU-04) |
+| Notificaciones | `src/app/Notifications/RestablecerContrasena.php` (correo de HU-03) |
+| Vistas | `src/resources/views/layouts/app.blade.php`, `auth/register.blade.php`, `auth/login.blade.php`, `auth/forgot-password.blade.php`, `auth/reset-password.blade.php`, `dashboard.blade.php` |
 | Migraciones | `src/database/migrations/` |
-| Pruebas | `src/tests/Feature/Auth/RegistroTest.php`, `LoginTest.php` |
+| Pruebas | `src/tests/Feature/Auth/RegistroTest.php`, `LoginTest.php`, `RecuperarContrasenaTest.php`, `LogoutTest.php`, `LimiteIntentosTest.php`, `src/tests/Feature/SeguridadTest.php` |
 
 ## Rutas
 
@@ -42,9 +45,12 @@ flowchart LR
 | GET | `/salud` | público | "Hola mundo" en JSON para verificar despliegue | infra |
 | GET | `/up` | público | Health check nativo de Laravel | infra |
 | GET/POST | `/registro` | solo visitantes | Formulario y registro | HU-01 |
-| GET/POST | `/login` | solo visitantes | Formulario e inicio de sesión | HU-02 |
-| GET | `/dashboard` | autenticado | Área privada | HU-02 |
-| POST | `/logout` | autenticado | Cierre de sesión básico (se completa en HU-04) | HU-04 |
+| GET/POST | `/login` | solo visitantes | Formulario e inicio de sesión (con límite de intentos fallidos) | HU-02, HU-05 |
+| GET/POST | `/recuperar` | solo visitantes | Solicitar enlace de recuperación | HU-03 |
+| GET | `/restablecer/{token}?email=` | solo visitantes | Formulario de nueva contraseña (enlace del correo) | HU-03 |
+| POST | `/restablecer` | solo visitantes | Guardar la nueva contraseña | HU-03 |
+| GET | `/dashboard` | autenticado, sin caché | Área privada | HU-02 |
+| POST | `/logout` | autenticado | Cierre de sesión (solo POST con token CSRF) | HU-04 |
 
 ## Despliegue objetivo en AWS (2 máquinas)
 

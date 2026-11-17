@@ -15,15 +15,17 @@ class SeguridadTest extends TestCase
 
     private const MENSAJE_LIMITE = 'Demasiados intentos. Espera un minuto e inténtalo de nuevo.';
 
-    public function test_login_se_bloquea_tras_5_intentos_fallidos(): void
+    // El bloqueo por cuenta + IP (HU-05) se prueba en tests/Feature/Auth/LimiteIntentosTest.php.
+
+    /** Capa extra: una IP no puede probar más de 20 correos distintos por minuto. */
+    public function test_login_limita_intentos_por_ip(): void
     {
         User::factory()->create(['email' => 'ana@test.local', 'password' => 'Abcd1234']);
 
-        for ($i = 0; $i < 5; $i++) {
-            $this->from('/login')->post('/login', ['email' => 'ana@test.local', 'password' => 'Mala9999']);
+        for ($i = 0; $i < 20; $i++) {
+            $this->from('/login')->post('/login', ['email' => "u{$i}@test.local", 'password' => 'Mala9999']);
         }
 
-        // El 6.º intento se rechaza aunque la contraseña sea correcta.
         $this->from('/login')
             ->post('/login', ['email' => 'ana@test.local', 'password' => 'Abcd1234'])
             ->assertRedirect('/login')
@@ -32,17 +34,15 @@ class SeguridadTest extends TestCase
         $this->assertGuest();
     }
 
-    public function test_limite_de_login_es_por_correo(): void
+    public function test_recuperar_limita_solicitudes_por_ip(): void
     {
-        User::factory()->create(['email' => 'luis@test.local', 'password' => 'Abcd1234']);
-
         for ($i = 0; $i < 5; $i++) {
-            $this->post('/login', ['email' => 'ana@test.local', 'password' => 'Mala9999']);
+            $this->post('/recuperar', ['email' => "u{$i}@test.local"]);
         }
 
-        // Otro correo desde la misma IP todavía puede entrar.
-        $this->post('/login', ['email' => 'luis@test.local', 'password' => 'Abcd1234'])
-            ->assertRedirect(route('dashboard'));
+        $this->from('/recuperar')
+            ->post('/recuperar', ['email' => 'otro@test.local'])
+            ->assertSessionHasErrors(['email' => self::MENSAJE_LIMITE]);
     }
 
     public function test_registro_se_bloquea_tras_5_intentos(): void

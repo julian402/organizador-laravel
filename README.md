@@ -47,8 +47,9 @@ Abrir http://127.0.0.1:8000
 |---|---|
 | `/` | Inicio |
 | `/registro` | HU-01 |
-| `/login` | HU-02 |
-| `/dashboard` | Área privada |
+| `/login` | HU-02 y HU-05 (límite de intentos) |
+| `/recuperar` | HU-03 (el correo de recuperación se escribe en `src/storage/logs/laravel.log` con `MAIL_MAILER=log`) |
+| `/dashboard` | Área privada (botón "Cerrar sesión", HU-04) |
 | `/salud` | "Hola mundo" (verificación de despliegue) |
 
 ## Base de datos local

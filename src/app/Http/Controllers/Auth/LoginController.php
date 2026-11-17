@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
 /**
- * HU-02: Inicio de sesión.
+ * HU-02: Inicio de sesión. HU-04: Cierre de sesión. HU-05: límite de intentos (en LoginRequest).
  */
 class LoginController extends Controller
 {
@@ -21,12 +21,8 @@ class LoginController extends Controller
 
     public function store(LoginRequest $request): RedirectResponse
     {
-        if (! Auth::attempt($request->only('email', 'password'))) {
-            // CA-02.3: mensaje genérico, no revela si falló el correo o la contraseña.
-            return back()
-                ->withInput($request->only('email'))
-                ->withErrors(['email' => 'Las credenciales ingresadas no son válidas.']);
-        }
+        // CA-02.3 y HU-05: si falla, LoginRequest devuelve al formulario con el mensaje correspondiente.
+        $request->authenticate();
 
         $request->session()->regenerate();
 
@@ -35,14 +31,18 @@ class LoginController extends Controller
     }
 
     /**
-     * Cierre de sesión básico (se completa en HU-04).
+     * HU-04: cierre de sesión.
      */
     public function destroy(Request $request): RedirectResponse
     {
-        Auth::logout();
+        Auth::guard('web')->logout();
+
+        // CA-04.2: se invalida la sesión en el servidor (se borra y se crea otra con nuevo ID)
+        // y se regenera el token CSRF.
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect()->route('login');
+        // CA-04.3: redirección al inicio de sesión.
+        return redirect()->route('login')->with('status', 'Cerraste sesión correctamente.');
     }
 }

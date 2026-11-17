@@ -90,6 +90,7 @@ input.is-invalid { border-color: var(--error); }
 
 .alert { padding: 12px 14px; border-radius: 8px; margin-bottom: 16px; font-size: .92rem; }
 .alert.ok { background: var(--ok-bg); color: var(--ok); }
+.alert.error { background: var(--error-bg); color: var(--error); }
 
 .muted { color: var(--muted); }
 .center { text-align: center; }

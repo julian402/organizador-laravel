@@ -30,6 +30,8 @@
         <button type="submit" class="btn block">Entrar</button>
     </form>
 
+    <p class="center muted"><a href="{{ route('password.request') }}">¿Olvidaste tu contraseña?</a></p>
+
     <p class="center muted">¿No tienes cuenta? <a href="{{ route('register') }}">Regístrate</a></p>
 </div>
 @endsection

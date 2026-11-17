@@ -1,4 +1,4 @@
-# 2. Diseño de base de datos (Sprint 1)
+# 2. Diseño de base de datos (Sprints 1 y 2)
 
 Motor: **PostgreSQL 17**. Bases: `organizador` (aplicación) y `organizador_test` (pruebas, requisito del plan TP-S01).
 
@@ -32,8 +32,16 @@ erDiagram
     }
 ```
 
-> `password_reset_tokens` ya existe por defecto en Laravel; se usará en **HU-03** (recuperar contraseña).
 > Las tablas `cache`, `jobs` y `migrations` son de infraestructura de Laravel.
+> Sprint 2 no requiere migraciones nuevas: usa tablas que ya existían.
+
+## Tablas usadas en Sprint 2
+
+| Tabla | HU | Uso |
+|---|---|---|
+| `password_reset_tokens` | HU-03 | Un registro por correo con el **hash** (bcrypt) del token de recuperación y su `created_at`. El token en claro solo viaja en el correo. Se valida que tenga menos de 30 minutos (`config/auth.php` → `expire = 30`) y se borra al usarse (un solo uso) o al pedir uno nuevo. |
+| `sessions` | HU-04 | Al cerrar sesión se borra el registro de la sesión (`session()->invalidate()`). Al restablecer la contraseña se borran todas las sesiones de ese usuario. |
+| `cache` | HU-05 | Contadores del límite de intentos: `login-fallos:<hash>` (fallos en la ventana de 15 min) y `login-bloqueo:<hash>` (bloqueo de 15 min). `<hash>` = SHA-256 de `correo|IP`, así no se guardan correos en la caché. |
 
 ## Diccionario de datos — `users`
 

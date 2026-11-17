@@ -94,7 +94,7 @@ return [
         'users' => [
             'provider' => 'users',
             'table' => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),
-            'expire' => 60,
+            'expire' => 30, // HU-03 CA-03.4: el enlace de recuperación vence a los 30 minutos
             'throttle' => 60,
         ],
     ],

@@ -2,14 +2,16 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Http\Requests\Auth\Concerns\ValidaContrasena;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rules\Password;
 
 /**
  * HU-01: validaciones del registro de usuarios (CA-01.1 a CA-01.5).
  */
 class RegisterRequest extends FormRequest
 {
+    use ValidaContrasena;
+
     public function authorize(): bool
     {
         return true;
@@ -30,12 +32,7 @@ class RegisterRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email:rfc,strict', 'max:255', 'unique:users,email'],
-            'password' => [
-                'required',
-                'confirmed',
-                Password::min(8)->mixedCase()->numbers(),
-            ],
-            'password_confirmation' => ['required'],
+            ...$this->reglasContrasena(),
         ];
     }
 
@@ -45,10 +42,7 @@ class RegisterRequest extends FormRequest
             'required' => 'El campo :attribute es obligatorio.',
             'email.email' => 'El correo electrónico no tiene un formato válido.',
             'email.unique' => 'Ya existe una cuenta registrada con este correo electrónico.',
-            'password.confirmed' => 'La contraseña y su confirmación no coinciden.',
-            'password.min' => 'La contraseña debe tener al menos 8 caracteres.',
-            'password.mixed' => 'La contraseña debe tener al menos una letra mayúscula y una minúscula.',
-            'password.numbers' => 'La contraseña debe tener al menos un número.',
+            ...$this->mensajesContrasena(),
         ];
     }
 
