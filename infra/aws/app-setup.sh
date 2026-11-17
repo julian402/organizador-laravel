@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# EC2 #1 — Servidor de aplicación (Ubuntu Server 24.04 LTS): Nginx + PHP-FPM + Laravel
-# Uso:  sudo REPO_URL=https://github.com/usuario/organizador.git bash app-setup.sh
+# EC2 #1 — Servidor de aplicación (Ubuntu Server 24.04+ LTS): Nginx + PHP-FPM + Laravel
+# Uso:  sudo REPO_URL=https://github.com/usuario/organizador.git PHP_VERSION=8.5 bash app-setup.sh
 set -euo pipefail
 
 : "${REPO_URL:?Defina REPO_URL (repositorio Git del proyecto)}"

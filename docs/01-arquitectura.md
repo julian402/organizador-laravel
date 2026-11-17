@@ -8,7 +8,7 @@
 | Vistas | Blade + CSS propio (`public/css/app.css`), sin build de npm |
 | Base de datos | PostgreSQL 17 |
 | Autenticación | Guard `web` de Laravel (sesiones en BD, contraseñas con bcrypt) |
-| Servidor (AWS) | Ubuntu Server 24.04 LTS + Nginx + PHP-FPM |
+| Servidor (AWS) | Ubuntu Server 26.04 LTS + Nginx + PHP 8.5-FPM, PostgreSQL 18, HTTPS con Let's Encrypt |
 
 ## MVC en el proyecto
 
@@ -52,20 +52,23 @@ flowchart LR
 | GET | `/dashboard` | autenticado, sin caché | Área privada | HU-02 |
 | POST | `/logout` | autenticado | Cierre de sesión (solo POST con token CSRF) | HU-04 |
 
-## Despliegue objetivo en AWS (2 máquinas)
+## Despliegue en AWS (2 máquinas)
+
+En producción: https://organizador-laravel.duckdns.org
 
 ```mermaid
 flowchart LR
-    I((Internet)) -->|80 / 443| APP
+    I((Internet)) -->|443 HTTPS<br/>80 redirige a 443| APP
     subgraph VPC
-      subgraph "EC2 #1 — App (Ubuntu 24.04)"
-        APP[Nginx] --> FPM[PHP-FPM 8.3<br/>Laravel]
+      subgraph "EC2 #1 — App (Ubuntu 26.04, Elastic IP)"
+        APP[Nginx] --> FPM[PHP-FPM 8.5<br/>Laravel]
       end
-      subgraph "EC2 #2 — BD (Ubuntu 24.04)"
-        PG[(PostgreSQL)]
+      subgraph "EC2 #2 — BD (Ubuntu 26.04)"
+        PG[(PostgreSQL 18)]
       end
       FPM -->|5432 solo desde<br/>Security Group de la App| PG
     end
+    FPM -->|587 SMTP TLS| G[Gmail SMTP]
 ```
 
 - **Local:** todo en el mismo equipo (`DB_HOST=127.0.0.1`).
