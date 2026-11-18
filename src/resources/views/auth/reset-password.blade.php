@@ -29,7 +29,7 @@
                 <label for="password">Nueva contraseña</label>
                 <input id="password" type="password" name="password" autofocus
                        class="@error('password') is-invalid @enderror">
-                <div class="hint">Mínimo 8 caracteres, con mayúscula, minúscula y número.</div>
+                <div class="hint">Mínimo 8 caracteres, con mayúscula, minúscula y número. Debe ser diferente a tu contraseña actual.</div>
                 @foreach ($errors->get('password') as $msg)
                     <div class="error">{{ $msg }}</div>
                 @endforeach

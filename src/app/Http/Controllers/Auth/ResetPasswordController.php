@@ -5,11 +5,13 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\ResetPasswordRequest;
 use App\Models\User;
+use App\Rules\DistintaDeLaActual;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
@@ -41,6 +43,13 @@ class ResetPasswordController extends Controller
         $estado = Password::reset(
             $request->only('email', 'password', 'password_confirmation', 'token'),
             function (User $user, string $password) {
+                // CA-03.8: aquí el token ya se validó. Si la contraseña es igual a la actual se lanza
+                // ValidationException antes de que el broker borre el token, así el enlace sigue sirviendo.
+                Validator::make(
+                    ['password' => $password],
+                    ['password' => [new DistintaDeLaActual($user)]],
+                )->validate();
+
                 // CA-03.7: el cast 'hashed' guarda el hash de la nueva contraseña; la anterior deja de servir.
                 $user->forceFill([
                     'password' => $password,

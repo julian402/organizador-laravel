@@ -6,6 +6,7 @@ use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Models\User;
 use App\Notifications\RestablecerContrasena;
+use App\Rules\DistintaDeLaActual;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -13,7 +14,7 @@ use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
 /**
- * HU-03 — Recuperación de contraseña (casos CP-15 a CP-25).
+ * HU-03 — Recuperación de contraseña (casos CP-15 a CP-25 y CP-40 a CP-42).
  */
 class RecuperarContrasenaTest extends TestCase
 {
@@ -267,5 +268,48 @@ class RecuperarContrasenaTest extends TestCase
     public function test_usuario_autenticado_no_accede_a_recuperar(): void
     {
         $this->actingAs($this->ana)->get('/recuperar')->assertRedirect('/dashboard');
+    }
+
+    /** CP-40 / CA-03.8: la nueva contraseña no puede ser igual a la actual */
+    public function test_cp40_nueva_contrasena_igual_a_la_actual_se_rechaza(): void
+    {
+        $token = $this->solicitarToken();
+
+        $this->restablecer($token, ['password' => 'Abcd1234', 'password_confirmation' => 'Abcd1234'])
+            ->assertRedirect('/restablecer/'.$token)
+            ->assertSessionHasErrors(['password' => DistintaDeLaActual::MENSAJE])
+            ->assertSessionHasInput('email', 'ana@test.local');
+
+        // No se cambió nada y el enlace NO se consumió: se puede corregir y reintentar.
+        $this->assertTrue($this->contrasenaActualEs('Abcd1234'));
+        $this->assertDatabaseCount('password_reset_tokens', 1);
+
+        $this->restablecer($token)->assertRedirect('/login');
+        $this->assertTrue($this->contrasenaActualEs('Nueva1234'));
+    }
+
+    /** CP-41 / CA-03.8 (límite): una contraseña que solo cambia mayúsculas/minúsculas sí es distinta */
+    public function test_cp41_contrasena_que_solo_cambia_mayusculas_se_acepta(): void
+    {
+        $token = $this->solicitarToken();
+
+        $this->restablecer($token, ['password' => 'aBCD1234', 'password_confirmation' => 'aBCD1234'])
+            ->assertRedirect('/login')
+            ->assertSessionHasNoErrors();
+
+        $this->assertTrue($this->contrasenaActualEs('aBCD1234'));
+        $this->assertFalse($this->contrasenaActualEs('Abcd1234'));
+    }
+
+    /** CP-42 / seguridad: sin un enlace válido no se revela si una contraseña es la actual */
+    public function test_cp42_sin_enlace_valido_no_se_revela_la_contrasena_actual(): void
+    {
+        $this->solicitarToken();
+
+        $this->restablecer(str_repeat('b', 64), ['password' => 'Abcd1234', 'password_confirmation' => 'Abcd1234'])
+            ->assertSessionHasErrors(['email' => ResetPasswordController::MENSAJE_ENLACE_INVALIDO])
+            ->assertSessionDoesntHaveErrors('password');
+
+        $this->assertTrue($this->contrasenaActualEs('Abcd1234'));
     }
 }

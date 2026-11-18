@@ -10,7 +10,7 @@ Aplicación web para organizar tareas y actividades. Laravel 12 (MVC) + PostgreS
 |---|---|---|
 | 1 | HU-01 Registro | Crear cuenta con validación de correo y contraseña segura (mín. 8, mayúscula, minúscula y número) |
 | 1 | HU-02 Inicio de sesión | Login con sesión en BD y regeneración de sesión |
-| 2 | HU-03 Recuperar contraseña | Enlace por correo de un solo uso que expira a los 30 min; mensaje genérico exista o no el correo |
+| 2 | HU-03 Recuperar contraseña | Enlace por correo de un solo uso que expira a los 30 min; la nueva contraseña debe ser distinta de la actual; mensaje genérico exista o no el correo |
 | 2 | HU-04 Cerrar sesión | Invalida la sesión en el servidor; sin acceso con el botón Atrás (`Cache-Control: no-store`) |
 | 2 | HU-05 Límite de intentos | 5 fallos por correo + IP en 15 min bloquean el login 15 min |
 
@@ -30,7 +30,8 @@ Organizador/
 │   ├── resources/views/             Vistas Blade
 │   ├── database/migrations/         Esquema de BD
 │   ├── routes/web.php               Rutas
-│   ├── tests/Feature/               Pruebas CP-01 a CP-39 (60 pruebas)
+│   ├── tests/Feature/               Pruebas funcionales CP-01 a CP-42
+│   ├── tests/Unit/                  Pruebas unitarias UT-01 a UT-10
 │   ├── Dockerfile                   Contenedor de la app (PHP 8.3 + Apache)
 │   └── docker/entrypoint.sh         Arranque del contenedor
 ├── docs/
@@ -87,7 +88,7 @@ cd Organizador\src
 C:\xampp\php\php.exe artisan test
 ```
 
-Usan la BD `organizador_test` y no tocan los datos de la app. Resultado actual: **60 pruebas aprobadas** (Sprint 1: CP-01 a CP-14, Sprint 2: CP-15 a CP-39). Detalle y matriz de trazabilidad en [`docs/04-pruebas-y-trazabilidad.md`](docs/04-pruebas-y-trazabilidad.md).
+Usan la BD `organizador_test` y no tocan los datos de la app. Resultado actual: **73 pruebas aprobadas**: 60 funcionales (Sprint 1: CP-01 a CP-14, Sprint 2: CP-15 a CP-42) y 13 unitarias (UT-01 a UT-10 del Sprint 2). Solo unitarias: `artisan test --testsuite Unit`. Detalle y matriz de trazabilidad en [`docs/04-pruebas-y-trazabilidad.md`](docs/04-pruebas-y-trazabilidad.md).
 
 ## Contenedor de la aplicación (Docker)
 

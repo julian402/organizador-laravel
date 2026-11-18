@@ -16,7 +16,7 @@ Plan base: **TP-S01** — pruebas funcionales de caja negra (positivas, negativa
 ## Casos de prueba
 
 Ejecución manual: seguir los pasos en el navegador y tomar captura como evidencia.
-Ejecución automática: `C:\xampp\php\php.exe artisan test` desde `src/` (60 pruebas). Solo una historia: `artisan test --filter RecuperarContrasenaTest` (o `LogoutTest`, `LimiteIntentosTest`).
+Ejecución automática: `C:\xampp\php\php.exe artisan test` desde `src/` (73 pruebas: 60 funcionales + 13 unitarias). Solo una historia: `artisan test --filter RecuperarContrasenaTest` (o `LogoutTest`, `LimiteIntentosTest`). Solo unitarias: `artisan test --testsuite Unit`.
 
 ### HU-01 — Registro (`/registro`)
 
@@ -61,6 +61,9 @@ Precondición: existe `ana@test.local` / `Abcd1234`. En manual, el enlace se cop
 | CP-23 | CA-03.6 | Negativo | Enlace ya usado en CP-19 | Abrir de nuevo el mismo enlace | "El enlace… no es válido o ya expiró" | `test_cp23_enlace_ya_usado_se_rechaza` | | |
 | CP-24 | CA-03.7 | Seguridad | `Abcd1234` (anterior) y `Nueva1234` | Iniciar sesión con cada una | La anterior es rechazada; la nueva entra | `test_cp24_contrasena_anterior_ya_no_permite_entrar` | | |
 | CP-25 | CA-03.3 | Seguridad | Token alterado en la URL | Cambiar caracteres del token y guardar | "El enlace… no es válido o ya expiró" | `test_cp25_token_manipulado_se_rechaza` | | |
+| CP-40 | CA-03.8 | Negativo | Enlace válido; nueva contraseña `Abcd1234` (igual a la actual) | 1. Abrir el enlace 2. Escribir la contraseña actual 3. Guardar 4. Escribir `Nueva1234` y guardar | Paso 3: "La nueva contraseña debe ser diferente a tu contraseña actual." y la clave no cambia. Paso 4: se guarda (el enlace no se gastó) | `test_cp40_nueva_contrasena_igual_a_la_actual_se_rechaza` | | |
+| CP-41 | CA-03.8 | Límite | Nueva contraseña `aBCD1234` (solo cambian mayúsculas/minúsculas) | Guardar desde un enlace válido | Se acepta: es una contraseña distinta | `test_cp41_contrasena_que_solo_cambia_mayusculas_se_acepta` | | |
+| CP-42 | CA-03.8 | Seguridad | Token inventado + la contraseña actual `Abcd1234` | Enviar el formulario | Solo "El enlace… no es válido o ya expiró": no revela si la contraseña era la actual | `test_cp42_sin_enlace_valido_no_se_revela_la_contrasena_actual` | | |
 
 ### HU-04 — Cierre de sesión — `tests/Feature/Auth/LogoutTest.php`
 
@@ -102,6 +105,26 @@ Precondición: existen `ana@test.local` y `luis@test.local` con clave `Abcd1234`
 | CP-S6 | Seguridad | Restablecer la contraseña renueva el `remember_token` | `test_restablecer_renueva_remember_token` |
 | CP-S7 | Seguridad | Intentos con campos vacíos no cuentan para el bloqueo; el correo en mayúsculas sí cuenta para la misma cuenta | `test_campos_vacios_no_cuentan_como_fallo`, `test_mayusculas_no_evitan_el_limite` |
 
+## Pruebas unitarias (Sprint 2)
+
+Prueban una función o clase **aislada** (sin navegador ni rutas HTTP), en `src/tests/Unit/`. Ejecución: `C:\xampp\php\php.exe artisan test --testsuite Unit`.
+
+| ID | HU / CA | Función validada | Datos de prueba | Resultado esperado | Resultado real | Estado |
+|---|---|---|---|---|---|---|
+| UT-01 | HU-03 / CA-03.8 | Regla `DistintaDeLaActual::validate()` | Contraseña actual `Abcd1234`; nueva `Abcd1234` | Falla con "La nueva contraseña debe ser diferente a tu contraseña actual." | Falla con el mensaje esperado | Aprobada |
+| UT-02 | HU-03 / CA-03.8 | Regla `DistintaDeLaActual::validate()` | Actual `Abcd1234`; nuevas `Nueva1234`, `aBCD1234`, `Abcd12345`, ` Abcd1234` | Las 4 pasan (son distintas) | Las 4 pasan | Aprobada |
+| UT-03 | HU-01, HU-03 / CA-01.4, CA-01.5, CA-03.5 | Trait `ValidaContrasena::reglasContrasena()` | `Abc1234`, `abcd1234`, `ABCD1234`, `Abcdefgh`; `Abcd1234` con confirmación `Abcd1235` | Cada una falla con su mensaje (8 caracteres / mayúscula y minúscula / número / no coinciden) | Cada una falla con el mensaje esperado | Aprobada |
+| UT-04 | HU-01, HU-03 / CA-01.4, CA-03.5 | Trait `ValidaContrasena::reglasContrasena()` | `Abcd1234` (8, límite), `Nueva1234`, `aBCD1234`, `Clave-Segura-2026` | Todas pasan | Todas pasan | Aprobada |
+| UT-05 | HU-03 / CA-03.4 | `Password::broker()->tokenExists()` + `config('auth.passwords.users.expire')` | Token recién creado; reloj adelantado 29 min | Vigencia configurada = 30; el token sigue válido | 30; token válido | Aprobada |
+| UT-06 | HU-03 / CA-03.4, CA-03.3 | `Password::broker()->tokenExists()` | Token alterado (`token+x`); token original con reloj adelantado 31 min | Ambos inválidos | Ambos inválidos | Aprobada |
+| UT-07 | HU-05 / CA-05.1, CA-05.2, CA-05.3 | `LoginRequest::authenticate()` | `ana@test.local` + `Incorrecta1` × 5 desde IP 10.0.0.1 | Fallos 1–4: "Las credenciales ingresadas no son válidas."; fallo 5: mensaje de bloqueo "…Inténtalo de nuevo en 15 minutos." | Igual al esperado | Aprobada |
+| UT-08 | HU-05 / CA-05.1, CA-05.2, CA-05.4 | `LoginRequest::authenticate()` | Cuenta bloqueada; clave correcta `Abcd1234` desde la misma IP, desde IP 10.0.0.2, a los 14 min y a los 16 min | Misma IP: bloqueada; otra IP: entra; 14 min: "…en 1 minuto."; 16 min: entra | Igual al esperado | Aprobada |
+| UT-09 | HU-04 / CA-04.4 | Middleware `SinCache::handle()` | Respuesta con contenido `privado` | `Cache-Control` con no-store, no-cache, must-revalidate, max-age=0, private; `Pragma: no-cache`; `Expires: 0`; contenido intacto | Igual al esperado | Aprobada |
+| UT-10 | HU-03 / CA-03.1 | `ForgotPasswordRequest` (`prepareForValidation` + `rules`) | `"  Ana@Test.LOCAL "`; inválidos: vacío, `ana`, `ana@`, `ana @test.local`, correo de 261 caracteres | El válido queda `ana@test.local`; los 5 inválidos se rechazan | Igual al esperado | Aprobada |
+| UT-S1 | HU-01 / CA-01.3 | `RegisterRequest` (regla `unique`) | Correo nuevo / correo ya registrado | Acepta / rechaza | Igual al esperado | Aprobada |
+
+> UT-S1 corresponde a `tests/Unit/UniqueEmailTest.php` (Sprint 1, 2 pruebas). La suite unitaria tiene además el ejemplo de Laravel: 10 + 2 + 1 = 13.
+
 ### Verificación de las pruebas automáticas
 
 Para comprobar que las pruebas detectan errores reales, se alteró el código a propósito y se verificó que fallaran:
@@ -114,6 +137,11 @@ Para comprobar que las pruebas detectan errores reales, se alteró el código a 
 | Responder distinto si el correo no existe | CP-17 |
 | Bloqueo de 10 min en vez de 15 | CP-33 a CP-36 |
 | No invalidar la sesión al cerrar sesión | CP-27 |
+| No validar que la nueva contraseña sea distinta de la actual | CP-40 |
+| Regla `DistintaDeLaActual` que nunca falla | UT-01, CP-40 |
+| Regla `DistintaDeLaActual` que siempre falla | UT-02, CP-41 |
+| Límite de intentos en 4 o en 6 en vez de 5 | UT-07, UT-08 |
+| Token con vigencia de 60 min | UT-05, UT-06 |
 
 ## Matriz de trazabilidad
 
@@ -140,6 +168,7 @@ Para comprobar que las pruebas detectan errores reales, se alteró el código a 
 | HU-03 | CA-03.5 Reglas de contraseña de HU-01 | trait `ValidaContrasena` (compartido con `RegisterRequest`) | CP-22 |
 | HU-03 | CA-03.6 Token invalidado tras el cambio | `Password::reset()` borra el token | CP-23 |
 | HU-03 | CA-03.7 La contraseña anterior deja de servir | `ResetPasswordController::store()` guarda el nuevo hash | CP-24 |
+| HU-03 | CA-03.8 La nueva contraseña no puede ser igual a la actual *(agregado por solicitud de la docente)* | regla `App\Rules\DistintaDeLaActual`, evaluada en `ResetPasswordController::store()` después de validar el token | CP-40, CP-41, CP-42, UT-01, UT-02 |
 | HU-04 | CA-04.1 Opción para cerrar sesión | botón en `layouts/app.blade.php` (POST + CSRF) | CP-26 |
 | HU-04 | CA-04.2 Invalida la sesión en el servidor | `LoginController::destroy()` → `invalidate()` + `regenerateToken()` | CP-27 |
 | HU-04 | CA-04.3 Redirige al login | `redirect()->route('login')` | CP-28 |
@@ -150,6 +179,6 @@ Para comprobar que las pruebas detectan errores reales, se alteró el código a 
 | HU-05 | CA-05.4 Se puede reintentar tras el bloqueo | la clave de bloqueo expira a los 15 min | CP-36 |
 | HU-05 | CA-05.5 Login exitoso reinicia el contador | `RateLimiter::clear()` en `LoginRequest::authenticate()` | CP-37 |
 
-**Cobertura de criterios:** Sprint 1: 13 / 13. Sprint 2: 16 / 16. Total: **29 / 29 criterios con al menos un caso (100 %)**.
+**Cobertura de criterios:** Sprint 1: 13 / 13. Sprint 2: 17 / 17. Total: **30 / 30 criterios con al menos un caso (100 %)**.
 
-**Pruebas automáticas:** 60 pruebas, 60 aprobadas (`php artisan test`).
+**Pruebas automáticas:** 73 pruebas, 73 aprobadas (`php artisan test`): 60 funcionales (`tests/Feature`) y 13 unitarias (`tests/Unit`).
